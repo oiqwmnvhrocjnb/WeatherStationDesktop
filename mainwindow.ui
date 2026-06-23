@@ -1,0 +1,921 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ПО Метеостанции</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="dashboardTab">
+       <attribute name="title">
+        <string>Дашборд</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="dashboardMainLayout">
+        <item>
+         <layout class="QVBoxLayout" name="dashboardLeftLayout">
+          <item>
+           <layout class="QHBoxLayout" name="topPanelLayout">
+            <item>
+             <widget class="QGroupBox" name="currentValuesGroup">
+              <property name="title">
+               <string>Текущие показания</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_values">
+               <item>
+                <widget class="QLabel" name="lblTemp">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Температура: -- °C</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblPressure">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Давление: -- Па</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblHumidity">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Влажность: -- %</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblGas">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>CO2: -- ppm</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblWater">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Вода: -- %</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblLight">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Свет: --</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblNoise">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Шум: --</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblControlSum">
+                 <property name="text">
+                  <string>Контрольная сумма: --</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="graphControlGroup">
+              <property name="title">
+               <string>Отображение графиков</string>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_checks">
+               <item row="0" column="0">
+                <widget class="QCheckBox" name="chkShowTemp">
+                 <property name="text">
+                  <string>Температура</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QPushButton" name="btnColorTemp">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Изменить цвет линии</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="comboStyleTemp">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QPushButton" name="btnSetTemp">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Настройки графика</string>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QCheckBox" name="chkShowPressure">
+                 <property name="text">
+                  <string>Давление</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QPushButton" name="btnColorPressure">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="2">
+                <widget class="QComboBox" name="comboStylePressure">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="3">
+                <widget class="QPushButton" name="btnSetPressure">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QCheckBox" name="chkShowHumidity">
+                 <property name="text">
+                  <string>Влажность</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QPushButton" name="btnColorHumidity">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="2">
+                <widget class="QComboBox" name="comboStyleHumidity">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="2" column="3">
+                <widget class="QPushButton" name="btnSetHumidity">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QCheckBox" name="chkShowGas">
+                 <property name="text">
+                  <string>Уровень CO2</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QPushButton" name="btnColorGas">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QComboBox" name="comboStyleGas">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="3" column="3">
+                <widget class="QPushButton" name="btnSetGas">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QCheckBox" name="chkShowWater">
+                 <property name="text">
+                  <string>Уровень воды</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QPushButton" name="btnColorWater">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="2">
+                <widget class="QComboBox" name="comboStyleWater">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="4" column="3">
+                <widget class="QPushButton" name="btnSetWater">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QCheckBox" name="chkShowLight">
+                 <property name="text">
+                  <string>Уровень света</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QPushButton" name="btnColorLight">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="2">
+                <widget class="QComboBox" name="comboStyleLight">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="5" column="3">
+                <widget class="QPushButton" name="btnSetLight">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0">
+                <widget class="QCheckBox" name="chkShowNoise">
+                 <property name="text">
+                  <string>Уровень шума</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QPushButton" name="btnColorNoise">
+                 <property name="minimumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>24</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="2">
+                <widget class="QComboBox" name="comboStyleNoise">
+                 <item>
+                  <property name="text">
+                   <string>Сплошная</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Пунктир</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Точки</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Штрих-пунктир</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="6" column="3">
+                <widget class="QPushButton" name="btnSetNoise">
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>24</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⚙</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QGroupBox" name="graphSettingsGroup">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="title">
+               <string>Настройки графика: (выберите)</string>
+              </property>
+              <layout class="QFormLayout" name="formLayoutSettings">
+               <item row="0" column="0" colspan="2">
+                <widget class="QCheckBox" name="chkAutoScale">
+                 <property name="text">
+                  <string>Автомасштаб оси Y</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="lblMinY">
+                 <property name="text">
+                  <string>Минимум Y:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QDoubleSpinBox" name="spinMinY">
+                 <property name="minimum">
+                  <double>-100000.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>200000.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="lblMaxY">
+                 <property name="text">
+                  <string>Максимум Y:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QDoubleSpinBox" name="spinMaxY">
+                 <property name="minimum">
+                  <double>-100000.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>200000.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0" colspan="2">
+                <widget class="Line" name="line1">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0" colspan="2">
+                <widget class="QCheckBox" name="chkMinAlert">
+                 <property name="text">
+                  <string>Уведомлять при падении &lt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="lblMinAlert">
+                 <property name="text">
+                  <string>Мин. порог:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QDoubleSpinBox" name="spinMinAlert">
+                 <property name="minimum">
+                  <double>-100000.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>200000.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0" colspan="2">
+                <widget class="QCheckBox" name="chkMaxAlert">
+                 <property name="text">
+                  <string>Уведомлять при превышении &gt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0">
+                <widget class="QLabel" name="lblMaxAlert">
+                 <property name="text">
+                  <string>Макс. порог:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="1">
+                <widget class="QDoubleSpinBox" name="spinMaxAlert">
+                 <property name="minimum">
+                  <double>-100000.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>200000.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="notificationsGroup">
+              <property name="title">
+               <string>Уведомления</string>
+              </property>
+              <layout class="QVBoxLayout" name="notifLayout">
+               <item>
+                <widget class="QListWidget" name="listNotifications">
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QWidget" name="graphsWidget" native="true">
+            <layout class="QVBoxLayout" name="verticalLayout_graphs">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QSplitter" name="mainVerticalSplitter">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <widget class="QSplitter" name="splitterRow1">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <widget class="QCustomPlot" name="plotTemp" native="true"/>
+                <widget class="QCustomPlot" name="plotPressure" native="true"/>
+               </widget>
+               <widget class="QSplitter" name="splitterRow2">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <widget class="QCustomPlot" name="plotHumidity" native="true"/>
+                <widget class="QCustomPlot" name="plotGas" native="true"/>
+               </widget>
+               <widget class="QSplitter" name="splitterRow3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <widget class="QCustomPlot" name="plotWater" native="true"/>
+                <widget class="QCustomPlot" name="plotLight" native="true"/>
+               </widget>
+               <widget class="QSplitter" name="splitterRow4">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <widget class="QCustomPlot" name="plotNoise" native="true"/>
+               </widget>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="settingsTab">
+       <attribute name="title">
+        <string>Глобальные настройки</string>
+       </attribute>
+       <layout class="QFormLayout" name="formLayout">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Тема оформления:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="themeCombo">
+          <item>
+           <property name="text">
+            <string>Светлая</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Темная</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Окно графика (сек):</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QSpinBox" name="timeSpin">
+          <property name="minimum">
+           <number>5</number>
+          </property>
+          <property name="maximum">
+           <number>1200</number>
+          </property>
+          <property name="value">
+           <number>60</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="aboutTab">
+       <attribute name="title">
+        <string>О программе</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblTitle">
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;h2 align=&quot;center&quot; style=&quot; margin-top:16px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:x-large; font-weight:600;&quot;&gt;ПО метеостанции&lt;/span&gt;&lt;/h2&gt;&lt;p align=&quot;center&quot;&gt;Версия 0.1&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblDesc">
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Программа для просмотра данных с датчиков&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header>qcustomplot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
