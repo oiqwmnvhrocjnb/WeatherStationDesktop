@@ -616,7 +616,8 @@ void MainWindow::updatePlot(QCustomPlot *plot, QVector<double> &timeData, QVecto
 
     if (settings.autoScale) {
         plot->yAxis->rescale();
-        QCPRange yRange = plot->yAxis->range();
+        bool foundRange = false;
+        QCPRange yRange = plot->graph(0)->getValueRange(foundRange, QCP::sdBoth);
         double padding = yRange.size() * 0.1;
         if (padding == 0.0) padding = 0.5;
         plot->yAxis->setRange(yRange.lower - padding, yRange.upper + padding);
