@@ -10,6 +10,8 @@
 #include <QSystemTrayIcon>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QSerialPort>
+#include <QSerialPortInfo>
 #include "qcustomplot.h"
 #include "packet.h"
 
@@ -48,10 +50,15 @@ signals:
     void dataReceived(const DataPacket &packet);
 
 private slots:
-    void generateRandomData();
+    //void generateRandomData();
     void processIncomingData(const DataPacket &packet);
     void openSettings(QCustomPlot *plot);
     void onSettingsChanged();
+    void readSerialData();
+    void sendCommand(unsigned char command);
+    void updatePorts();
+    void openPort();
+
 
 private:
     Ui::MainWindow *ui;
@@ -71,6 +78,9 @@ private:
     void loadSettings();
     void saveGraphState(QSettings &set, const QString &key, QCustomPlot *plot, QCheckBox *chk, QComboBox *comboStyle);
     void loadGraphState(QSettings &set, const QString &key, QCustomPlot *plot, QCheckBox *chk, QPushButton *btnColor, QComboBox *comboStyle);
+
+
+    QSerialPort* serial;
 
     QTimer *dataTimer;
     double startTime;
@@ -100,4 +110,8 @@ private:
     QVector<double> noiseMap;
 
     int graphWindowSeconds = 60;
+
+    QByteArray rxBuffer;
+    QElapsedTimer timer;
+    unsigned long counter;
 };

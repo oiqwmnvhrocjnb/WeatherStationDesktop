@@ -8,7 +8,6 @@
 #include <QStyleFactory>
 #include <QColorDialog>
 #include <QListWidget>
-#include <QMetaType>
 #include <QDockWidget>
 #include <QMenu>
 #include <cstddef>
@@ -141,14 +140,46 @@ MainWindow::MainWindow(QWidget *parent)
 
     applyTheme(false);
 
+    updatePorts();
+
     loadSettings();
 
     startTime = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
 
-    dataTimer = new QTimer(this);
-    connect(dataTimer, &QTimer::timeout, this, &MainWindow::generateRandomData);
+    //dataTimer = new QTimer(this);
+    //connect(dataTimer, &QTimer::timeout, this, &MainWindow::generateRandomData);
 
-    dataTimer->start(QRandomGenerator::global()->bounded(900, 1101));
+    //dataTimer->start(QRandomGenerator::global()->bounded(900, 1101));
+
+    counter = 0;
+
+    serial = new QSerialPort(this);
+
+    connect(serial, &QSerialPort::readyRead, this, &MainWindow::readSerialData);
+
+    connect(ui->comboBoxPortName, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, &MainWindow::openPort);
+    connect(ui->comboBoxBaudRate, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, &MainWindow::openPort);
+    connect(ui->comboBoxDataBits, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, &MainWindow::openPort);
+    connect(ui->comboBoxDataFormat, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, &MainWindow::openPort);
+    connect(ui->comboBoxParity, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, &MainWindow::openPort);
+    connect(ui->comboBoxDataFormat, QOverload<int>::of(&QComboBox::currentIndexChanged),  [this](){
+                if (ui->comboBoxDataFormat->currentIndex() == 0)
+                {
+                    sendCommand(CMD_NMEA);
+                }
+                else
+                {
+                    sendCommand(CMD_BIN);
+                }
+            }
+            );
+
+    openPort();
 }
 
 MainWindow::~MainWindow()
@@ -597,6 +628,7 @@ void MainWindow::updatePlot(QCustomPlot *plot, QVector<double> &timeData, QVecto
     plot->replot();
 }
 
+/*
 void MainWindow::generateRandomData()
 {
     int nextInterval = QRandomGenerator::global()->bounded(900, 1101);
@@ -619,17 +651,18 @@ void MainWindow::generateRandomData()
 
     emit dataReceived(packet);
 }
+*/
 
 void MainWindow::processIncomingData(const DataPacket &packet)
 {
-    unsigned char dataLength = static_cast<unsigned char>(offsetof(DataPacket, controlSum));
+    /*unsigned char dataLength = static_cast<unsigned char>(offsetof(DataPacket, controlSum));
 
     unsigned short calculatedCrc = countCrc(reinterpret_cast<unsigned char*>(const_cast<DataPacket*>(&packet)), dataLength);
 
     if (calculatedCrc != packet.controlSum)
     {
         return;
-    }
+    }*/
 
     ui->lblTemp->setText(QString("Температура: %1 °C").arg(packet.temperature, 0, 'f', 1));
     ui->lblPressure->setText(QString("Давление: %1 Па").arg(packet.pressure, 0, 'f', 0));
@@ -643,9 +676,9 @@ void MainWindow::processIncomingData(const DataPacket &packet)
     ui->lblNoise->setText(packet.isNoisy ? "Шум: ШУМНО" : "Шум: ТИХО");
     ui->lblNoise->setStyleSheet(packet.isNoisy ? "color: red;" : "color: green;");
 
-    QString controlSumString = QString("%1").arg(packet.controlSum, 4, 16, QChar('0')).toUpper();
+    //QString controlSumString = QString("%1").arg(packet.controlSum, 4, 16, QChar('0')).toUpper();
 
-    ui->lblControlSum->setText(QString("Контрольная сумма: 0x%1").arg(controlSumString));
+    //ui->lblControlSum->setText(QString("Контрольная сумма: 0x%1").arg(controlSumString));
 
     double currentTime = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
 
@@ -657,4 +690,252 @@ void MainWindow::processIncomingData(const DataPacket &packet)
 
     updatePlot(ui->plotLight, timeLight, lightMap, packet.isLight ? 1.0 : 0.0, currentTime);
     updatePlot(ui->plotNoise, timeNoise, noiseMap, packet.isNoisy ? 1.0 : 0.0, currentTime);
+}
+
+void MainWindow::readSerialData()
+{
+    rxBuffer.append(serial->readAll());
+    while (!rxBuffer.isEmpty())
+    {
+        if (rxBuffer[0] == '$')
+        {
+            int endOfNmea = rxBuffer.indexOf("\r\n");
+            if (endOfNmea == -1) break;
+
+            QByteArray nmeaLine = rxBuffer.left(endOfNmea + 2);
+            rxBuffer.remove(0, endOfNmea + 2);
+
+            QString response = QString::fromUtf8(nmeaLine).trimmed();
+            qDebug() << "Принят NMEA пакет:" << response;
+
+            int dollarIdx = response.indexOf("$");
+            int starIdx = response.indexOf("*");
+
+            if (dollarIdx != -1 && starIdx != -1 && starIdx > dollarIdx)
+            {
+                QString body = response.mid(dollarIdx + 1, starIdx - dollarIdx - 1);
+                QString receivedCrcStr = response.mid(starIdx + 1);
+
+                unsigned char calculatedCrc = 0;
+                for (int i = 0; i < body.length(); i++)
+                {
+                    calculatedCrc ^= body[i].toLatin1();
+                }
+
+                bool ok;
+                unsigned int receivedCrc = receivedCrcStr.toInt(&ok, 16);
+
+                if (ok && calculatedCrc == receivedCrc)
+                {
+                    QStringList tokens = body.split(",");
+
+                    if (tokens.size() == 8 && tokens[0] == "PMVS")
+                    {
+                        DataPacket packet;
+
+                        packet.temperature     = tokens[1].toFloat();
+                        packet.pressure        = tokens[2].toFloat();
+                        packet.humidity        = tokens[3].toFloat();
+                        packet.gasConcentration= tokens[4].toFloat();
+                        packet.waterLevel      = static_cast<unsigned char>(tokens[5].toInt());
+                        packet.isLight         = tokens[6].toInt() == 1;
+                        packet.isNoisy         = tokens[7].toInt() == 1;
+
+                        processIncomingData(packet);
+
+                        qDebug() << "NMEA пакет успешно распарсен! Итерация:" << counter++;
+                    }
+                    else
+                    {
+                        qDebug() << "Неверный формат данных внутри NMEA пакета";
+                    }
+                }
+                else
+                {
+                    qDebug() << "Ошибка контрольной суммы NMEA! Ожидалось:" << calculatedCrc << "Получено:" << receivedCrc;
+                }
+            }
+        }
+        else
+        {
+            if (rxBuffer.size() < 3) break;
+
+            unsigned char byte0 = rxBuffer[0];
+            unsigned char byte1 = rxBuffer[1];
+            unsigned char packId = rxBuffer[2];
+
+            if (byte0 == 0xDA && byte1 == 0xDA)
+            {
+                int expectedSize = 0;
+                if (packId == DataType) expectedSize = sizeof(DataPacket);
+                else if (packId == CommandType) expectedSize = sizeof(CommandPacket);
+                else
+                {
+                    rxBuffer.remove(0, 1);
+                    continue;
+                }
+
+                if (rxBuffer.size() < expectedSize) break;
+
+                QByteArray packet = rxBuffer.left(expectedSize);
+
+                if (packId == DataType)
+                {
+                    DataPacket data;
+                    memcpy(&data, packet.constData(), sizeof(DataPacket));
+
+                    unsigned short calcCrc = countCrc((unsigned char*)&data, sizeof(DataPacket) - sizeof(data.controlSum));
+
+                    if (calcCrc == data.controlSum)
+                    {
+                        processIncomingData(data);
+                    }
+                    else
+                    {
+                        qDebug() << "Ошибка CRC! Ожидалось:" << calcCrc << "Получено:" << data.controlSum;
+                    }
+                }
+                else if (packId == CommandType)
+                {
+                    CommandPacket command;
+                    memcpy(&command, packet.constData(), sizeof(CommandPacket));
+
+                    unsigned short calcCrc = countCrc((unsigned char*)&command, sizeof(CommandPacket) - sizeof(command.controlSum));
+
+                    if (calcCrc == command.controlSum)
+                    {
+                        qDebug() << ">>> ПОДТВЕРЖДЕНИЕ ОТ АРДУИНО: Команда" << command.command << "успешно принята устройством!";
+                    }
+                    else
+                    {
+                        qDebug() << "Ошибка CRC пакета подтверждения команды!";
+                    }
+                }
+
+                rxBuffer.remove(0, expectedSize);
+            }
+            else
+            {
+                rxBuffer.remove(0, 1);
+            }
+        }
+    }
+}
+
+void MainWindow::sendCommand(unsigned char command)
+{
+    if (!serial || !serial->isOpen())
+    {
+        qDebug() << "Ошибка отправки";
+    }
+
+    CommandPacket cmd;
+    cmd.command = command;
+    cmd.controlSum = countCrc(reinterpret_cast<unsigned char*>(&cmd), sizeof(CommandPacket) - sizeof(cmd.controlSum));
+
+    int64_t bytesWritten = serial->write(reinterpret_cast<const char*>(&cmd), sizeof(cmd));
+
+    if (bytesWritten == sizeof(cmd))
+    {
+        qDebug() << "Команда отправлена " << command;
+    }
+    else
+    {
+        qDebug() << "Ошибка отправки";
+    }
+}
+
+void MainWindow::updatePorts()
+{
+    ui->comboBoxPortName->clear();
+    QList<QSerialPortInfo> portsInfoList = QSerialPortInfo::availablePorts();
+    for (int i = 0; i < portsInfoList.size(); i++)
+    {
+        ui->comboBoxPortName->addItem(portsInfoList[i].portName());
+    }
+}
+
+void MainWindow::openPort()
+{
+    if (serial->isOpen())
+    {
+        serial->close();
+    }
+
+    serial->setPortName(ui->comboBoxPortName->currentText());
+    bool isOpened = serial->open(QIODevice::ReadWrite);
+
+    if (!isOpened)
+    {
+        QMessageBox::warning(this, "Внимание!", "Не удалось открыть последовательный порт.");
+        return;
+    }
+    qDebug() << "Порт открыт";
+
+    int baudRate = ui->comboBoxBaudRate->currentText().toInt();
+    isOpened &= serial->setBaudRate(baudRate);
+    qDebug() << "Скорость настроена";
+
+    int dataBits = ui->comboBoxDataBits->currentText().toInt();
+    switch (dataBits)
+    {
+    case 5:
+        isOpened &= serial->setDataBits(QSerialPort::Data5);
+        break;
+    case 6:
+        isOpened &= serial->setDataBits(QSerialPort::Data6);
+        break;
+    case 7:
+        isOpened &= serial->setDataBits(QSerialPort::Data7);
+        break;
+    case 8:
+        isOpened &= serial->setDataBits(QSerialPort::Data8);
+        break;
+    }
+    qDebug() << "Бит данных установлены";
+
+    float stopBits = ui->comboBoxStopBits->currentText().toFloat();
+    if (stopBits == 1)
+    {
+        isOpened &= serial->setStopBits(QSerialPort::OneStop);
+    }
+    else if (stopBits == 1.5)
+    {
+        isOpened &= serial->setStopBits(QSerialPort::OneAndHalfStop);
+    }
+    else if (stopBits == 2)
+    {
+        isOpened &= serial->setStopBits(QSerialPort::TwoStop);
+    }
+    qDebug() << "Стоп бит установлены";
+
+    QString parity = ui->comboBoxParity->currentText();
+    if (parity == "Нет")
+    {
+        isOpened &= serial->setParity(QSerialPort::NoParity);
+    }
+    else if (parity == "Чет")
+    {
+        isOpened &= serial->setParity(QSerialPort::EvenParity);
+    }
+    else if (parity == "Нечет")
+    {
+        isOpened &= serial->setParity(QSerialPort::OddParity);
+    }
+    else if (parity == "Маркер")
+    {
+        isOpened &= serial->setParity(QSerialPort::MarkParity);
+    }
+    else if (parity == "Пробел")
+    {
+        isOpened &= serial->setParity(QSerialPort::SpaceParity);
+    }
+    qDebug() << "Четность установлена";
+
+    if (!isOpened)
+    {
+        QMessageBox::warning(this, "Внимание!", "Не удалось настроить последовательный порт.");
+        return;
+    }
+    qDebug() << "Порт настроен";
 }
