@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QTimer>
+//#include <QTimer>
 #include <QVector>
 #include <QCheckBox>
 #include <QPushButton>
@@ -21,6 +21,9 @@ class MainWindow;
 
 struct GraphSettings {
     QString name;
+
+    double minLimitY = 0;
+    double maxLimitY = 100;
 
     bool autoScale = true;
     double minY = 0.0;
@@ -50,13 +53,13 @@ signals:
     void dataReceived(const DataPacket &packet);
 
 private slots:
-    //void generateRandomData();
     void processIncomingData(const DataPacket &packet);
     void openSettings(QCustomPlot *plot);
     void onSettingsChanged();
     void readSerialData();
     void sendCommand(unsigned char command);
     void updatePorts();
+    void closePort();
     void openPort();
 
 
@@ -67,8 +70,9 @@ private:
     void setupGraph(QCustomPlot *plot, const QString &yAxisLabel, QColor color);
     void updatePlot(QCustomPlot *plot, QVector<double> &timeData, QVector<double> &valueData, double newValue, double currentTime);
     void applyTheme(bool isDark);
+    void applyGraphSettings(QCustomPlot *plot);
 
-    void initGraphSettings(QCustomPlot* plot, const QString& name, double defMinY, double defMaxY, double defMinAlert, double defMaxAlert);
+    void initGraphSettings(QCustomPlot* plot, const QString& name, double defMinY, double defMaxY, double defMinAlert, double defMaxAlert, double minLimit, double maxLimit);
 
     void addNotification(const QString &message, bool isError);
 

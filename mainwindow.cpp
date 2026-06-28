@@ -2,7 +2,6 @@
 #include "ui_mainwindow.h"
 #include "controlSum.h"
 #include <QDateTime>
-#include <QRandomGenerator>
 #include <QApplication>
 #include <QStyle>
 #include <QStyleFactory>
@@ -99,13 +98,13 @@ MainWindow::MainWindow(QWidget *parent)
     QColor colLight(255, 165, 0);
     QColor colNoise(200, 50, 50);
 
-    initGraphSettings(ui->plotTemp, "Температура", -10.0, 40.0, 0.0, 30.0);
-    initGraphSettings(ui->plotPressure, "Давление", 100000.0, 102000.0, 100500.0, 101500.0);
-    initGraphSettings(ui->plotHumidity, "Влажность", 0.0, 100.0, 30.0, 70.0);
-    initGraphSettings(ui->plotGas, "CO2", 300.0, 1000.0, 0.0, 800.0);
-    initGraphSettings(ui->plotWater, "Уровень воды", 0.0, 100.0, 10.0, 90.0);
-    initGraphSettings(ui->plotLight, "Освещенность", -0.2, 1.2, 0.0, 1.0);
-    initGraphSettings(ui->plotNoise, "Уровень шума", -0.2, 1.2, 0.0, 1.0);
+    initGraphSettings(ui->plotTemp, "Температура", -10.0, 40.0, 0.0, 30.0, -50.0, 105.0);
+    initGraphSettings(ui->plotPressure, "Давление", 100000.0, 102000.0, 100500.0, 101500.0, 30000.0, 300000.0);
+    initGraphSettings(ui->plotHumidity, "Влажность", 0.0, 100.0, 30.0, 70.0, 0.0, 100.0);
+    initGraphSettings(ui->plotGas, "CO2", 300.0, 1000.0, 0.0, 800.0, 0.0, 5000.0);
+    initGraphSettings(ui->plotWater, "Уровень воды", 0.0, 100.0, 10.0, 90.0, 0.0, 100.0);
+    initGraphSettings(ui->plotLight, "Освещенность", 0.0, 1.0, -0.2, 1.2, 0.0, 1.0);
+    initGraphSettings(ui->plotNoise, "Уровень шума", 0.0, 1.0, -0.2, 1.2, 0.0, 1.0);
 
     setupGraph(ui->plotTemp, "Температура, °C", colTemp);
     setupGraph(ui->plotPressure, "Давление, Па", colPressure);
@@ -122,6 +121,11 @@ MainWindow::MainWindow(QWidget *parent)
     bindGraphControls(ui->plotWater, ui->chkShowWater, ui->btnColorWater, ui->comboStyleWater, ui->btnSetWater, colWater);
     bindGraphControls(ui->plotLight, ui->chkShowLight, ui->btnColorLight, ui->comboStyleLight, ui->btnSetLight, colLight);
     bindGraphControls(ui->plotNoise, ui->chkShowNoise, ui->btnColorNoise, ui->comboStyleNoise, ui->btnSetNoise, colNoise);
+
+    ui->spinMinY->setKeyboardTracking(false);
+    ui->spinMaxY->setKeyboardTracking(false);
+    ui->spinMinAlert->setKeyboardTracking(false);
+    ui->spinMaxAlert->setKeyboardTracking(false);
 
     connect(ui->chkAutoScale, &QCheckBox::toggled, this, &MainWindow::onSettingsChanged);
     connect(ui->spinMinY, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::onSettingsChanged);
@@ -140,16 +144,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     applyTheme(false);
 
-    updatePorts();
-
     loadSettings();
 
     startTime = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
-
-    //dataTimer = new QTimer(this);
-    //connect(dataTimer, &QTimer::timeout, this, &MainWindow::generateRandomData);
-
-    //dataTimer->start(QRandomGenerator::global()->bounded(900, 1101));
 
     counter = 0;
 
@@ -177,7 +174,22 @@ MainWindow::MainWindow(QWidget *parent)
                     sendCommand(CMD_BIN);
                 }
             }
-            );
+            );    
+
+    connect(ui->btnUpdatePorts, &QPushButton::clicked, this, &MainWindow::updatePorts);
+    connect(ui->btnOpenPort, &QPushButton::clicked, this, &MainWindow::openPort);
+    connect(ui->btnClosePort, &QPushButton::clicked, this, &MainWindow::closePort);
+
+
+    connect(serial, &QSerialPort::errorOccurred, this, [this](QSerialPort::SerialPortError error) {
+        if (error == QSerialPort::ResourceError) {
+            addNotification("Ошибка порта", true);
+            closePort();
+        }
+    });
+
+    updatePorts();
+
 
     openPort();
 }
@@ -198,6 +210,12 @@ void MainWindow::saveSettings()
 {
     QSettings settings(QCoreApplication::applicationDirPath() + "/settings.ini", QSettings::IniFormat);
 
+    settings.setValue("dataFormat", ui->comboBoxDataFormat->currentIndex());
+    settings.setValue("baudRate", ui->comboBoxBaudRate->currentIndex());
+    settings.setValue("parity", ui->comboBoxParity->currentIndex());
+    settings.setValue("dataBits", ui->comboBoxDataBits->currentIndex());
+    settings.setValue("stopBits", ui->comboBoxStopBits->currentIndex());
+
     settings.setValue("geometry", saveGeometry());
 
     settings.setValue("windowState", saveState());
@@ -216,7 +234,19 @@ void MainWindow::saveSettings()
 
 void MainWindow::loadSettings()
 {
+    QSignalBlocker bFormat(ui->comboBoxDataFormat);
+    QSignalBlocker bBaud(ui->comboBoxBaudRate);
+    QSignalBlocker bParity(ui->comboBoxParity);
+    QSignalBlocker bBits(ui->comboBoxDataBits);
+    QSignalBlocker bStop(ui->comboBoxStopBits);
+
     QSettings settings(QCoreApplication::applicationDirPath() + "/settings.ini", QSettings::IniFormat);
+
+    if (settings.contains("dataFormat")) ui->comboBoxDataFormat->setCurrentIndex(settings.value("dataFormat").toInt());
+    if (settings.contains("baudRate")) ui->comboBoxBaudRate->setCurrentIndex(settings.value("baudRate").toInt());
+    if (settings.contains("parity")) ui->comboBoxParity->setCurrentIndex(settings.value("parity").toInt());
+    if (settings.contains("dataBits")) ui->comboBoxDataBits->setCurrentIndex(settings.value("dataBits").toInt());
+    if (settings.contains("stopBits")) ui->comboBoxStopBits->setCurrentIndex(settings.value("stopBits").toInt());
 
     if (settings.contains("geometry")) restoreGeometry(settings.value("geometry").toByteArray());
 
@@ -300,10 +330,12 @@ void MainWindow::loadGraphState(QSettings &set, const QString &key, QCustomPlot 
     }
 }
 
-void MainWindow::initGraphSettings(QCustomPlot* plot, const QString& name, double defMinY, double defMaxY, double defMinAlert, double defMaxAlert)
+void MainWindow::initGraphSettings(QCustomPlot* plot, const QString& name, double defMinY, double defMaxY, double defMinAlert, double defMaxAlert, double minLimit, double maxLimit)
 {
     GraphSettings set;
     set.name = name;
+    set.minLimitY = minLimit;
+    set.maxLimitY = maxLimit;
     set.autoScale = true;
     set.minY = defMinY;
     set.maxY = defMaxY;
@@ -382,6 +414,16 @@ void MainWindow::openSettings(QCustomPlot *plot)
     ui->chkMaxAlert->blockSignals(true);
     ui->spinMaxAlert->blockSignals(true);
 
+    ui->spinMinY->setMinimum(-9999999.0);
+    ui->spinMinY->setMaximum(9999999.0);
+    ui->spinMaxY->setMinimum(-9999999.0);
+    ui->spinMaxY->setMaximum(9999999.0);
+
+    ui->spinMinAlert->setMinimum(-9999999.0);
+    ui->spinMinAlert->setMaximum(9999999.0);
+    ui->spinMaxAlert->setMinimum(-9999999.0);
+    ui->spinMaxAlert->setMaximum(9999999.0);
+
     ui->chkAutoScale->setChecked(set.autoScale);
     ui->spinMinY->setValue(set.minY);
     ui->spinMaxY->setValue(set.maxY);
@@ -390,8 +432,17 @@ void MainWindow::openSettings(QCustomPlot *plot)
     ui->chkMaxAlert->setChecked(set.maxAlertEnabled);
     ui->spinMaxAlert->setValue(set.maxAlert);
 
-    ui->spinMinY->setEnabled(!set.autoScale);
-    ui->spinMaxY->setEnabled(!set.autoScale);
+    bool isBinarySensor = (plot == ui->plotLight || plot == ui->plotNoise);
+    if (isBinarySensor) {
+        ui->chkAutoScale->setEnabled(false);
+        ui->spinMinY->setEnabled(false);
+        ui->spinMaxY->setEnabled(false);
+    } else {
+        ui->chkAutoScale->setEnabled(true);
+        ui->spinMinY->setEnabled(!set.autoScale);
+        ui->spinMaxY->setEnabled(!set.autoScale);
+    }
+
     ui->spinMinAlert->setEnabled(set.minAlertEnabled);
     ui->spinMaxAlert->setEnabled(set.maxAlertEnabled);
 
@@ -409,22 +460,115 @@ void MainWindow::onSettingsChanged()
     if (!currentSettingsGraph) return;
 
     GraphSettings &set = graphSettings[currentSettingsGraph];
+
+    ui->spinMinY->blockSignals(true);
+    ui->spinMaxY->blockSignals(true);
+    ui->spinMinAlert->blockSignals(true);
+    ui->spinMaxAlert->blockSignals(true);
+
+    double valMinY = ui->spinMinY->value();
+    double valMaxY = ui->spinMaxY->value();
+    double valMinAlert = ui->spinMinAlert->value();
+    double valMaxAlert = ui->spinMaxAlert->value();
+
+    valMinY = qBound(set.minLimitY, valMinY, set.maxLimitY);
+    valMaxY = qBound(set.minLimitY, valMaxY, set.maxLimitY);
+    valMinAlert = qBound(set.minLimitY, valMinAlert, set.maxLimitY);
+    valMaxAlert = qBound(set.minLimitY, valMaxAlert, set.maxLimitY);
+
+    if (valMinY > valMaxY) {
+        if (sender() == ui->spinMinY) {
+            valMaxY = valMinY;
+        }
+        else if (sender() == ui->spinMaxY) {
+            valMinY = valMaxY;
+        }
+    }
+
+    if (valMinAlert > valMaxAlert) {
+        if (sender() == ui->spinMinAlert) {
+            valMaxAlert = valMinAlert;
+        }
+        else if (sender() == ui->spinMaxAlert) {
+            valMinAlert = valMaxAlert;
+        }
+    }
+
+    ui->spinMinY->setValue(valMinY);
+    ui->spinMaxY->setValue(valMaxY);
+    ui->spinMinAlert->setValue(valMinAlert);
+    ui->spinMaxAlert->setValue(valMaxAlert);
+
+    ui->spinMinY->blockSignals(false);
+    ui->spinMaxY->blockSignals(false);
+    ui->spinMinAlert->blockSignals(false);
+    ui->spinMaxAlert->blockSignals(false);
+
     set.autoScale = ui->chkAutoScale->isChecked();
-    set.minY = ui->spinMinY->value();
-    set.maxY = ui->spinMaxY->value();
+    set.minY = valMinY;
+    set.maxY = valMaxY;
 
     set.minAlertEnabled = ui->chkMinAlert->isChecked();
-    set.minAlert = ui->spinMinAlert->value();
+    set.minAlert = valMinAlert;
 
     set.maxAlertEnabled = ui->chkMaxAlert->isChecked();
-    set.maxAlert = ui->spinMaxAlert->value();
+    set.maxAlert = valMaxAlert;
 
-    ui->spinMinY->setEnabled(!set.autoScale);
-    ui->spinMaxY->setEnabled(!set.autoScale);
+    bool isBinarySensor = (currentSettingsGraph == ui->plotLight || currentSettingsGraph == ui->plotNoise);
+    if (isBinarySensor) {
+        ui->spinMinY->setEnabled(false);
+        ui->spinMaxY->setEnabled(false);
+    } else {
+        ui->spinMinY->setEnabled(!set.autoScale);
+        ui->spinMaxY->setEnabled(!set.autoScale);
+    }
+
     ui->spinMinAlert->setEnabled(set.minAlertEnabled);
     ui->spinMaxAlert->setEnabled(set.maxAlertEnabled);
 
-    currentSettingsGraph->replot();
+    applyGraphSettings(currentSettingsGraph);
+}
+
+void MainWindow::applyGraphSettings(QCustomPlot *plot)
+{
+    if (!plot) return;
+
+    GraphSettings &settings = graphSettings[plot];
+
+    if (settings.autoScale) {
+        plot->yAxis->rescale();
+        bool foundRange = false;
+        QCPRange yRange = plot->graph(0)->getValueRange(foundRange, QCP::sdBoth);
+        if (foundRange) {
+            double padding = yRange.size() * 0.1;
+            if (padding == 0.0) padding = 0.5;
+            plot->yAxis->setRange(yRange.lower - padding, yRange.upper + padding);
+        } else {
+            plot->yAxis->setRange(qMin(settings.minY, settings.maxY), qMax(settings.minY, settings.maxY));
+        }
+    } else {
+        plot->yAxis->setRange(qMin(settings.minY, settings.maxY), qMax(settings.minY, settings.maxY));
+    }
+
+    double minX = plot->xAxis->range().lower;
+    double maxX = plot->xAxis->range().upper;
+    QVector<double> ax = {minX, maxX};
+
+    if (settings.minAlertEnabled) {
+        plot->graph(2)->setData(ax, {settings.minAlert, settings.minAlert});
+        plot->graph(2)->setVisible(true);
+    } else {
+        plot->graph(2)->setVisible(false);
+    }
+
+    if (settings.maxAlertEnabled) {
+        plot->graph(3)->setData(ax, {settings.maxAlert, settings.maxAlert});
+        plot->graph(3)->setVisible(true);
+    } else {
+        plot->graph(3)->setVisible(false);
+    }
+
+    plot->replot();
 }
 
 void MainWindow::addNotification(const QString &message, bool isError)
@@ -466,11 +610,22 @@ void MainWindow::applyTheme(bool isDark)
         p.setColor(QPalette::Link, QColor(42, 130, 218));
         p.setColor(QPalette::Highlight, QColor(42, 130, 218));
         p.setColor(QPalette::HighlightedText, Qt::black);
+        p.setColor(QPalette::Disabled, QPalette::WindowText, QColor(120, 120, 120));
+        p.setColor(QPalette::Disabled, QPalette::Text, QColor(120, 120, 120));
+        p.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(120, 120, 120));
+        p.setColor(QPalette::Disabled, QPalette::Base, QColor(35, 35, 35));
     } else {
         p = qApp->style()->standardPalette();
     }
     qApp->setPalette(p);
 
+    QString style = isDark ? "QPushButton { background-color: #353535; }"
+                             "QPushButton:hover { background-color: #414141; }"
+                             "QPushButton:pressed { background-color: #282828; }" : "";
+
+    for (QPushButton* btn : {ui->btnUpdatePorts, ui->btnOpenPort, ui->btnClosePort}) {
+        btn->setStyleSheet(style);
+    }
 
     QList<QCustomPlot*> plots = {
         ui->plotTemp, ui->plotPressure, ui->plotHumidity,
@@ -629,41 +784,8 @@ void MainWindow::updatePlot(QCustomPlot *plot, QVector<double> &timeData, QVecto
     plot->replot();
 }
 
-/*
-void MainWindow::generateRandomData()
-{
-    int nextInterval = QRandomGenerator::global()->bounded(900, 1101);
-    dataTimer->start(nextInterval);
-
-    DataPacket packet;
-
-    packet.syncMark = 0xDADA;
-
-    packet.temperature = 20.0f + (QRandomGenerator::global()->bounded(100) / 10.0f) - 5.0f;
-    packet.pressure = 101300.0f + (QRandomGenerator::global()->bounded(1000) - 500);
-    packet.humidity = 40.0f + (QRandomGenerator::global()->bounded(200) / 10.0f);
-    packet.gasConcentration = 400.0f + QRandomGenerator::global()->bounded(100);
-    packet.waterLevel = QRandomGenerator::global()->bounded(101);
-    packet.isLight = QRandomGenerator::global()->bounded(2) == 1;
-    packet.isNoisy = QRandomGenerator::global()->bounded(10) > 8;
-
-    unsigned char dataLength = static_cast<unsigned char>(offsetof(DataPacket, controlSum));
-    packet.controlSum = countCrc(reinterpret_cast<unsigned char*>(&packet), dataLength);
-
-    emit dataReceived(packet);
-}
-*/
-
 void MainWindow::processIncomingData(const DataPacket &packet)
 {
-    /*unsigned char dataLength = static_cast<unsigned char>(offsetof(DataPacket, controlSum));
-
-    unsigned short calculatedCrc = countCrc(reinterpret_cast<unsigned char*>(const_cast<DataPacket*>(&packet)), dataLength);
-
-    if (calculatedCrc != packet.controlSum)
-    {
-        return;
-    }*/
 
     ui->lblTemp->setText(QString("Температура: %1 °C").arg(packet.temperature, 0, 'f', 1));
     ui->lblPressure->setText(QString("Давление: %1 Па").arg(packet.pressure, 0, 'f', 0));
@@ -676,10 +798,6 @@ void MainWindow::processIncomingData(const DataPacket &packet)
 
     ui->lblNoise->setText(packet.isNoisy ? "Шум: ШУМНО" : "Шум: ТИХО");
     ui->lblNoise->setStyleSheet(packet.isNoisy ? "color: red;" : "color: green;");
-
-    //QString controlSumString = QString("%1").arg(packet.controlSum, 4, 16, QChar('0')).toUpper();
-
-    //ui->lblControlSum->setText(QString("Контрольная сумма: 0x%1").arg(controlSumString));
 
     double currentTime = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
 
@@ -848,20 +966,38 @@ void MainWindow::sendCommand(unsigned char command)
 
 void MainWindow::updatePorts()
 {
+    QSignalBlocker blocker(ui->comboBoxPortName);
+
+    QString currentPort = ui->comboBoxPortName->currentText();
+
     ui->comboBoxPortName->clear();
     QList<QSerialPortInfo> portsInfoList = QSerialPortInfo::availablePorts();
     for (int i = 0; i < portsInfoList.size(); i++)
     {
         ui->comboBoxPortName->addItem(portsInfoList[i].portName());
     }
+
+    int index = ui->comboBoxPortName->findText(currentPort);
+    if (index != -1)
+    {
+        ui->comboBoxPortName->setCurrentIndex(index);
+    }
 }
 
-void MainWindow::openPort()
+void MainWindow::closePort()
 {
     if (serial->isOpen())
     {
         serial->close();
     }
+
+    ui->lblPortConnection->setText("Не подключено");
+    ui->lblPortConnection->setStyleSheet("color: red;");
+}
+
+void MainWindow::openPort()
+{
+    closePort();
 
     serial->setPortName(ui->comboBoxPortName->currentText());
     bool isOpened = serial->open(QIODevice::ReadWrite);
@@ -939,4 +1075,7 @@ void MainWindow::openPort()
         return;
     }
     qDebug() << "Порт настроен";
+
+    ui->lblPortConnection->setText("Подключено");
+    ui->lblPortConnection->setStyleSheet("color: green;");
 }
