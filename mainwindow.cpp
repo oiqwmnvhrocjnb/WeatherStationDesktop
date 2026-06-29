@@ -146,24 +146,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     loadSettings();
 
-    startTime = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
-
     counter = 0;
 
     serial = new QSerialPort(this);
 
     connect(serial, &QSerialPort::readyRead, this, &MainWindow::readSerialData);
-
-    connect(ui->comboBoxPortName, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, &MainWindow::openPort);
-    connect(ui->comboBoxBaudRate, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, &MainWindow::openPort);
-    connect(ui->comboBoxDataBits, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, &MainWindow::openPort);
-    connect(ui->comboBoxDataFormat, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, &MainWindow::openPort);
-    connect(ui->comboBoxParity, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, &MainWindow::openPort);
     connect(ui->comboBoxDataFormat, QOverload<int>::of(&QComboBox::currentIndexChanged),  [this](){
                 if (ui->comboBoxDataFormat->currentIndex() == 0)
                 {
@@ -180,18 +167,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->btnOpenPort, &QPushButton::clicked, this, &MainWindow::openPort);
     connect(ui->btnClosePort, &QPushButton::clicked, this, &MainWindow::closePort);
 
-
-    connect(serial, &QSerialPort::errorOccurred, this, [this](QSerialPort::SerialPortError error) {
-        if (error == QSerialPort::ResourceError) {
-            addNotification("Ошибка порта", true);
-            closePort();
+    for (auto *cb : {ui->comboBoxPortName, ui->comboBoxBaudRate, ui->comboBoxDataBits, ui->comboBoxStopBits, ui->comboBoxParity}) {
+            connect(cb, &QComboBox::currentTextChanged, this, &MainWindow::checkPortSettingsChanged);
         }
-    });
+
+    ui->lblPortWarning->hide();
+
+
+    connect(serial, &QSerialPort::errorOccurred, this, &MainWindow::handleSerialPortError);
+
+    dataTimer = new QTimer(this);
+    dataTimer->setInterval(5000);
+    connect(dataTimer, &QTimer::timeout, this, &MainWindow::onDataTimerTimeout);
 
     updatePorts();
 
-
-    openPort();
+    closePort();
 }
 
 MainWindow::~MainWindow()
@@ -786,6 +777,7 @@ void MainWindow::updatePlot(QCustomPlot *plot, QVector<double> &timeData, QVecto
 
 void MainWindow::processIncomingData(const DataPacket &packet)
 {
+    dataTimer->start();
 
     ui->lblTemp->setText(QString("Температура: %1 °C").arg(packet.temperature, 0, 'f', 1));
     ui->lblPressure->setText(QString("Давление: %1 Па").arg(packet.pressure, 0, 'f', 0));
@@ -991,6 +983,10 @@ void MainWindow::closePort()
         serial->close();
     }
 
+    if (dataTimer && dataTimer->isActive()) dataTimer->stop();
+
+    ui->lblPortWarning->hide();
+
     ui->lblPortConnection->setText("Не подключено");
     ui->lblPortConnection->setStyleSheet("color: red;");
 }
@@ -1076,6 +1072,48 @@ void MainWindow::openPort()
     }
     qDebug() << "Порт настроен";
 
+    dataTimer->start();
+
+    activePortSettings = QStringList{
+        ui->comboBoxPortName->currentText(),
+        ui->comboBoxBaudRate->currentText(),
+        ui->comboBoxDataBits->currentText(),
+        ui->comboBoxStopBits->currentText(),
+        ui->comboBoxParity->currentText()
+    };
+    ui->lblPortWarning->hide();
+
     ui->lblPortConnection->setText("Подключено");
     ui->lblPortConnection->setStyleSheet("color: green;");
+}
+
+
+
+void MainWindow::onDataTimerTimeout()
+{
+    closePort();
+    QMessageBox::critical(this, "Ошибка", "Данные от устройства не поступают. Порт закрыт.");
+}
+
+void MainWindow::handleSerialPortError(QSerialPort::SerialPortError error)
+{
+    if (error == QSerialPort::NoError) return;
+    closePort();
+    QMessageBox::critical(this, "Ошибка", "Ошибка COM-порта.");
+}
+
+void MainWindow::checkPortSettingsChanged()
+{
+    if (!serial || !serial->isOpen()) {
+        ui->lblPortWarning->hide();
+        return;
+    }
+
+    QStringList currentSettings = {
+        ui->comboBoxPortName->currentText(), ui->comboBoxBaudRate->currentText(),
+        ui->comboBoxDataBits->currentText(), ui->comboBoxStopBits->currentText(),
+        ui->comboBoxParity->currentText()
+    };
+
+    ui->lblPortWarning->setVisible(currentSettings != activePortSettings);
 }

@@ -82,7 +82,12 @@ private:
     void loadSettings();
     void saveGraphState(QSettings &set, const QString &key, QCustomPlot *plot, QCheckBox *chk, QComboBox *comboStyle);
     void loadGraphState(QSettings &set, const QString &key, QCustomPlot *plot, QCheckBox *chk, QPushButton *btnColor, QComboBox *comboStyle);
+    void onDataTimerTimeout();
+    void handleSerialPortError(QSerialPort::SerialPortError error);
 
+    void checkPortSettingsChanged();
+
+    QStringList activePortSettings;
 
     QSerialPort* serial;
 
