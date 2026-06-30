@@ -161,7 +161,7 @@ MainWindow::MainWindow(QWidget *parent)
                     sendCommand(CMD_BIN);
                 }
             }
-            );    
+            );
 
     connect(ui->btnUpdatePorts, &QPushButton::clicked, this, &MainWindow::updatePorts);
     connect(ui->btnOpenPort, &QPushButton::clicked, this, &MainWindow::openPort);
@@ -688,6 +688,9 @@ void MainWindow::setupGraph(QCustomPlot *plot, const QString &yAxisLabel, QColor
 
     plot->xAxis->setLabel("Время");
     plot->yAxis->setLabel(yAxisLabel);
+
+    plot->setMinimumWidth(350);
+    plot->setMinimumHeight(200);
 }
 
 void MainWindow::updatePlot(QCustomPlot *plot, QVector<double> &timeData, QVector<double> &valueData, double newValue, double currentTime)
@@ -810,14 +813,25 @@ void MainWindow::readSerialData()
     {
         if (rxBuffer[0] == '$')
         {
-            int endOfNmea = rxBuffer.indexOf("\r\n");
-            if (endOfNmea == -1) break;
+            int endOfLine = rxBuffer.indexOf("\r\n");
+            if (endOfLine == -1) break;
 
-            QByteArray nmeaLine = rxBuffer.left(endOfNmea + 2);
-            rxBuffer.remove(0, endOfNmea + 2);
+            QByteArray line = rxBuffer.left(endOfLine + 2);
+            rxBuffer.remove(0, endOfLine + 2);
 
-            QString response = QString::fromUtf8(nmeaLine).trimmed();
+            QString response = QString::fromUtf8(line).trimmed();
             qDebug() << "Принят NMEA пакет:" << response;
+
+            if (response == "$START")
+            {
+                qDebug() << "Плата запущена";
+
+                ui->comboBoxDataFormat->setEnabled(false);
+                emit ui->comboBoxDataFormat->currentIndexChanged(ui->comboBoxDataFormat->currentIndex());
+                ui->comboBoxDataFormat->setEnabled(true);
+
+                addNotification("Плата запущена", false);
+            }
 
             int dollarIdx = response.indexOf("$");
             int starIdx = response.indexOf("*");
@@ -899,6 +913,7 @@ void MainWindow::readSerialData()
 
                     if (calcCrc == data.controlSum)
                     {
+                        qDebug() << "Бинарный пакет: " << counter++;
                         processIncomingData(data);
                     }
                     else
